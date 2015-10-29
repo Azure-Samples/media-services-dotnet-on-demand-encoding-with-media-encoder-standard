@@ -33,14 +33,32 @@ namespace OnDemandEncodingWithMES
                 // Used the chached credentials to create CloudMediaContext.
                 _context = new CloudMediaContext(_cachedCredentials);
 
-                // Add calls to methods defined in this section.
+               
+                // If you want to secure your high quality input media files with strong encryption at rest on disk,
+                // use AssetCreationOptions.StorageEncrypted instead of AssetCreationOptions.None.
 
                 IAsset inputAsset =
                     UploadFile(@"..\\..\\Media\BigBuckBunny.mp4", AssetCreationOptions.None);
 
+                // If you want to secure your high quality encoded media files with strong encryption at rest on disk,
+                // use AssetCreationOptions.StorageEncrypted instead of AssetCreationOptions.None.
+                // 
+                // If your asset is AssetCreationOptions.StorageEncrypted, 
+                // make sure to call ConfigureClearAssetDeliveryPolicy defined below.
+
                 IAsset encodedAsset =
                     EncodeToAdaptiveBitrateMP4s(inputAsset, AssetCreationOptions.None);
 
+                // If your want to delivery a storage encrypted asset, 
+                // you must configure the asset’s delivery policy.
+                // Before your asset can be streamed, 
+                // the streaming server removes the storage encryption and 
+                //streams your content using the specified delivery policy.
+
+                // ConfigureClearAssetDeliveryPolicy(encodedAsset);
+
+                PublishAssetGetURLs(encodedAsset);
+                
                 PublishAssetGetURLs(encodedAsset);
             }
             catch (Exception exception)
@@ -106,6 +124,21 @@ namespace OnDemandEncodingWithMES
             return outputAsset;
         }
 
+        static public IAsset UploadFile(string fileName, AssetCreationOptions options)
+        {
+            IAsset inputAsset = _context.Assets.CreateFromFile(
+                fileName,
+                options,
+                (af, p) =>
+                {
+                    Console.WriteLine("Uploading '{0}' - Progress: {1:0.##}%", af.Name, p.Progress);
+                });
+
+            Console.WriteLine("Asset {0} created.", inputAsset.Id);
+
+            return inputAsset;
+        }
+        
         static public void PublishAssetGetURLs(IAsset asset)
         {
             // Publish the output asset by creating an Origin locator for adaptive streaming,
