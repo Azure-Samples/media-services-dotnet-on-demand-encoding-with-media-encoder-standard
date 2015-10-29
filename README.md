@@ -4,7 +4,7 @@ platforms: dotnet
 author: Juliako
 ---
 
-# Get started with encoding and delivering content on demand using .NET SDK
+# Encode and Deliver Content on Demand with Azure Media Services using .NET SDK
 
 The sample shows how to encode media on demand with Media Encoder Standard. It also demonstrates how to deliver your content to users using .NET
 
