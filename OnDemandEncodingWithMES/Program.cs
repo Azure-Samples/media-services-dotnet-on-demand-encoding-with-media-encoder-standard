@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
+
 namespace OnDemandEncodingWithMES
 {
     class Program
@@ -17,6 +18,12 @@ namespace OnDemandEncodingWithMES
             ConfigurationManager.AppSettings["MediaServicesAccountName"];
         private static readonly string _mediaServicesAccountKey =
             ConfigurationManager.AppSettings["MediaServicesAccountKey"];
+
+        private static readonly string _mediaFiles =
+                Path.GetFullPath(@"../..\Media");
+
+        private static readonly string _presetFiles =
+            Path.GetFullPath(@"../..\Presets");
 
         // Field for service context.
         private static CloudMediaContext _context = null;
@@ -33,13 +40,17 @@ namespace OnDemandEncodingWithMES
                 // Used the chached credentials to create CloudMediaContext.
                 _context = new CloudMediaContext(_cachedCredentials);
 
+
                
                 // If you want to secure your high quality input media files with strong encryption at rest on disk,
                 // use AssetCreationOptions.StorageEncrypted instead of AssetCreationOptions.None.
 
                 IAsset inputAsset =
-                    UploadFile(@"..\\..\\Media\BigBuckBunny.mp4", AssetCreationOptions.None);
+                    UploadFile(Path.Combine(_mediaFiles, @"BigBuckBunny.mp4"), AssetCreationOptions.None);
 
+                IAsset thumbnailAsset = GenerateThumbnail(inputAsset, AssetCreationOptions.None);
+
+                IAsset audioOnly = EncodeToAudioOnly(inputAsset, AssetCreationOptions.None);
                 // If you want to secure your high quality encoded media files with strong encryption at rest on disk,
                 // use AssetCreationOptions.StorageEncrypted instead of AssetCreationOptions.None.
                 // 
@@ -49,6 +60,7 @@ namespace OnDemandEncodingWithMES
                 IAsset encodedAsset =
                     EncodeToAdaptiveBitrateMP4s(inputAsset, AssetCreationOptions.None);
 
+
                 // If your want to delivery a storage encrypted asset, 
                 // you must configure the asset’s delivery policy.
                 // Before your asset can be streamed, 
@@ -57,8 +69,6 @@ namespace OnDemandEncodingWithMES
 
                 // ConfigureClearAssetDeliveryPolicy(encodedAsset);
 
-                PublishAssetGetURLs(encodedAsset);
-                
                 PublishAssetGetURLs(encodedAsset);
             }
             catch (Exception exception)
@@ -124,21 +134,75 @@ namespace OnDemandEncodingWithMES
             return outputAsset;
         }
 
-        static public IAsset UploadFile(string fileName, AssetCreationOptions options)
+
+        static public IAsset GenerateThumbnail(IAsset asset, AssetCreationOptions options)
         {
-            IAsset inputAsset = _context.Assets.CreateFromFile(
-                fileName,
-                options,
-                (af, p) =>
+
+            // Load the XML (or JSON) from the local file.
+            string configuration = File.ReadAllText(Path.Combine(_presetFiles, @"ThumbnailPreset_JSON.json"));
+
+            IJob job = _context.Jobs.CreateWithSingleTask(
+                "Media Encoder Standard",
+                configuration,
+                asset,
+                "Thumbnail",
+                options);
+
+            Console.WriteLine("Submitting transcoding job...");
+
+
+            // Submit the job and wait until it is completed.
+            job.Submit();
+
+            job = job.StartExecutionProgressTask(
+                j =>
                 {
-                    Console.WriteLine("Uploading '{0}' - Progress: {1:0.##}%", af.Name, p.Progress);
-                });
+                    Console.WriteLine("Job state: {0}", j.State);
+                    Console.WriteLine("Job progress: {0:0.##}%", j.GetOverallProgress());
+                },
+                CancellationToken.None).Result;
 
-            Console.WriteLine("Asset {0} created.", inputAsset.Id);
+            Console.WriteLine("Transcoding job finished.");
 
-            return inputAsset;
+            IAsset outputAsset = job.OutputMediaAssets[0];
+
+            return outputAsset;
         }
-        
+
+        static public IAsset EncodeToAudioOnly(IAsset asset, AssetCreationOptions options)
+        {
+            // Load the XML (or JSON) from the local file.
+            string configuration = File.ReadAllText(Path.Combine(_presetFiles, @"AudioOnlyPreset_JSON.json"));
+
+            IJob job = _context.Jobs.CreateWithSingleTask(
+                "Media Encoder Standard",
+                configuration,
+                asset,
+                "Audio only",
+                options);
+
+            Console.WriteLine("Submitting transcoding job...");
+
+
+            // Submit the job and wait until it is completed.
+            job.Submit();
+
+            job = job.StartExecutionProgressTask(
+                j =>
+                {
+                    Console.WriteLine("Job state: {0}", j.State);
+                    Console.WriteLine("Job progress: {0:0.##}%", j.GetOverallProgress());
+                },
+                CancellationToken.None).Result;
+
+            Console.WriteLine("Transcoding job finished.");
+
+            IAsset outputAsset = job.OutputMediaAssets[0];
+
+            return outputAsset;
+        }
+
+
         static public void PublishAssetGetURLs(IAsset asset)
         {
             // Publish the output asset by creating an Origin locator for adaptive streaming,
