@@ -1,4 +1,4 @@
-﻿using Microsoft.WindowsAzure.MediaServices.Client;
+using Microsoft.WindowsAzure.MediaServices.Client;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -41,16 +41,28 @@ namespace OnDemandEncodingWithMES
                 _context = new CloudMediaContext(_cachedCredentials);
 
 
-               
+
                 // If you want to secure your high quality input media files with strong encryption at rest on disk,
                 // use AssetCreationOptions.StorageEncrypted instead of AssetCreationOptions.None.
 
+                Console.WriteLine("Upload a file.\n");
                 IAsset inputAsset =
                     UploadFile(Path.Combine(_mediaFiles, @"BigBuckBunny.mp4"), AssetCreationOptions.None);
 
+                
+                Console.WriteLine("Generate thumbnails and get URLs.\n");
+
                 IAsset thumbnailAsset = GenerateThumbnail(inputAsset, AssetCreationOptions.None);
+                PublishAssetGetURLs(thumbnailAsset, false, ".bmp");
+
+
+                Console.WriteLine("Encode to audio and get an on demand URL.\n");
 
                 IAsset audioOnly = EncodeToAudioOnly(inputAsset, AssetCreationOptions.None);
+                PublishAssetGetURLs(audioOnly);
+
+                Console.WriteLine("Encode to adaptive bitraite MP4s and get on demand URLs.\n");
+
                 // If you want to secure your high quality encoded media files with strong encryption at rest on disk,
                 // use AssetCreationOptions.StorageEncrypted instead of AssetCreationOptions.None.
                 // 
@@ -203,69 +215,56 @@ namespace OnDemandEncodingWithMES
         }
 
 
-        static public void PublishAssetGetURLs(IAsset asset)
+        static public void PublishAssetGetURLs(IAsset asset, bool onDemaindURL = true, string fileExt = "")
         {
             // Publish the output asset by creating an Origin locator for adaptive streaming,
             // and a SAS locator for progressive download.
 
-            _context.Locators.Create(
-                LocatorType.OnDemandOrigin,
-                asset,
-                AccessPermissions.Read,
-                TimeSpan.FromDays(30));
+            if (onDemaindURL)
+            {
+                _context.Locators.Create(
+                    LocatorType.OnDemandOrigin,
+                    asset,
+                    AccessPermissions.Read,
+                    TimeSpan.FromDays(30));
 
-            _context.Locators.Create(
-                LocatorType.Sas,
-                asset,
-                AccessPermissions.Read,
-                TimeSpan.FromDays(30));
+                // Get the Smooth Streaming, HLS and MPEG-DASH URLs for adaptive streaming,
+                // and the Progressive Download URL.
+                Uri smoothStreamingUri = asset.GetSmoothStreamingUri();
+                Uri hlsUri = asset.GetHlsUri();
+                Uri mpegDashUri = asset.GetMpegDashUri();
 
+                // Display  the streaming URLs.
+                Console.WriteLine("Use the following URLs for adaptive streaming: ");
+                Console.WriteLine(smoothStreamingUri);
+                Console.WriteLine(hlsUri);
+                Console.WriteLine(mpegDashUri);
+                Console.WriteLine();
+            }
+            else
+            {
+                _context.Locators.Create(
+                    LocatorType.Sas,
+                    asset,
+                    AccessPermissions.Read,
+                    TimeSpan.FromDays(30));
 
-            IEnumerable<IAssetFile> mp4AssetFiles = asset
+                IEnumerable<IAssetFile> assetFiles = asset
                     .AssetFiles
                     .ToList()
-                    .Where(af => af.Name.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase));
-
-            // Get the Smooth Streaming, HLS and MPEG-DASH URLs for adaptive streaming,
-            // and the Progressive Download URL.
-            Uri smoothStreamingUri = asset.GetSmoothStreamingUri();
-            Uri hlsUri = asset.GetHlsUri();
-            Uri mpegDashUri = asset.GetMpegDashUri();
-
-            // Get the URls for progressive download for each MP4 file that was generated as a result
-            // of encoding.
-            List<Uri> mp4ProgressiveDownloadUris = mp4AssetFiles.Select(af => af.GetSasUri()).ToList();
+                    .Where(af => af.Name.EndsWith(fileExt, StringComparison.OrdinalIgnoreCase));
 
 
-            // Display  the streaming URLs.
-            Console.WriteLine("Use the following URLs for adaptive streaming: ");
-            Console.WriteLine(smoothStreamingUri);
-            Console.WriteLine(hlsUri);
-            Console.WriteLine(mpegDashUri);
-            Console.WriteLine();
+                // Get the URls for progressive download for each specified file that was generated as a result
+                // of encoding.
 
-            // Display the URLs for progressive download.
-            Console.WriteLine("Use the following URLs for progressive download.");
-            mp4ProgressiveDownloadUris.ForEach(uri => Console.WriteLine(uri + "\n"));
-            Console.WriteLine();
+                List<Uri> sasUris = assetFiles.Select(af => af.GetSasUri()).ToList();
 
-            // Download the output asset to a local folder.
-            string outputFolder = "job-output";
-            if (!Directory.Exists(outputFolder))
-            {
-                Directory.CreateDirectory(outputFolder);
+                // Display the URLs for progressive download.
+                Console.WriteLine("Use the following URLs for progressive download.");
+                sasUris.ForEach(uri => Console.WriteLine(uri + "\n"));
+                Console.WriteLine();
             }
-
-            Console.WriteLine();
-            Console.WriteLine("Downloading output asset files to a local folder...");
-            asset.DownloadToFolder(
-                outputFolder,
-                (af, p) =>
-                {
-                    Console.WriteLine("Downloading '{0}' - Progress: {1:0.##}%", af.Name, p.Progress);
-                });
-
-            Console.WriteLine("Output asset files available at '{0}'.", Path.GetFullPath(outputFolder));
         }
     }
 }
