@@ -6,7 +6,12 @@ author: Juliako
 
 # Encode and Deliver Content on Demand with Azure Media Services using .NET SDK
 
-The sample shows how to encode media on demand with Media Encoder Standard. It also demonstrates how to deliver your content to users using .NET
+The sample shows how to encode media on demand with Media Encoder Standard. The following media processing operations are shown:
+ 
+- How to generate a thumbnail.
+- How to encode to audio only.
+- How to encoder to adaptive bitrate MP4s.
+
 
 ## Running this sample
 
