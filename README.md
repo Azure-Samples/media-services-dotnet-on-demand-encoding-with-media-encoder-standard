@@ -18,17 +18,15 @@ The sample shows how to encode media on demand with Media Encoder Standard. The 
 1. Use Nuget to install the latest Azure Media Services .NET SDK extensions.
 	
 	[Install-Package windowsazure.mediaservices.extensions](http://www.nuget.org/packages/windowsazure.mediaservices.extensions).
-2. Add the appSettings section to the app.config file, and set the values for your Media Services account name and account key.
-		
+2. Update the appSettings section of the app.config file with appropriate values. For more information, see [this](https://docs.microsoft.com/azure/media-services/media-services-use-aad-auth-to-access-ams-api) topic.
+
 		<?xml version="1.0"?>
 		<configuration>
 		  <appSettings>
-		      <add key="MediaServicesAccountName" value="YouMediaServicesAccountName" />
-		      <add key="MediaServicesAccountKey" value="YouMediaServicesAccountKey" />
+			    <add key="AMSAADTenantDomain" value="AADTenantDomain" />
+			    <add key="AMSRESTAPIEndpoint" value="RESTAPIEndpoint" />
 		  </appSettings>
 		</configuration>
-
-
 
 ## About the code
 
@@ -38,7 +36,6 @@ For more information, see the following topics:
 - [How to encode an asset using Media Encoder Standard](http://azure.microsoft.com/documentation/articles/media-services-dotnet-encode-with-media-encoder-standard/).
 
 ## More information
-
 
 You can view AMS learning paths here:
 
