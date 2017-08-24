@@ -4,20 +4,17 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-
 
 namespace OnDemandEncodingWithMES
 {
     class Program
     {
         // Read values from the App.config file.
-        private static readonly string _mediaServicesAccountName =
-            ConfigurationManager.AppSettings["MediaServicesAccountName"];
-        private static readonly string _mediaServicesAccountKey =
-            ConfigurationManager.AppSettings["MediaServicesAccountKey"];
+        static string _AADTenantDomain =
+            ConfigurationManager.AppSettings["AMSAADTenantDomain"];
+        static string _RESTAPIEndpoint =
+            ConfigurationManager.AppSettings["AMSRESTAPIEndpoint"];
 
         private static readonly string _mediaFiles =
                 Path.GetFullPath(@"../..\Media");
@@ -27,34 +24,26 @@ namespace OnDemandEncodingWithMES
 
         // Field for service context.
         private static CloudMediaContext _context = null;
-        private static MediaServicesCredentials _cachedCredentials = null;
 
         static void Main(string[] args)
         {
             try
             {
-                // Create and cache the Media Services credentials in a static class variable.
-                _cachedCredentials = new MediaServicesCredentials(
-                                _mediaServicesAccountName,
-                                _mediaServicesAccountKey);
-                // Used the chached credentials to create CloudMediaContext.
-                _context = new CloudMediaContext(_cachedCredentials);
+                AzureAdTokenCredentials tokenCredentials = new AzureAdTokenCredentials(_AADTenantDomain, AzureEnvironments.AzureCloudEnvironment);
+                AzureAdTokenProvider tokenProvider = new AzureAdTokenProvider(tokenCredentials);
 
-
-
+                _context = new CloudMediaContext(new Uri(_RESTAPIEndpoint), tokenProvider);
                 // If you want to secure your high quality input media files with strong encryption at rest on disk,
                 // use AssetCreationOptions.StorageEncrypted instead of AssetCreationOptions.None.
 
                 Console.WriteLine("Upload a file.\n");
                 IAsset inputAsset =
                     UploadFile(Path.Combine(_mediaFiles, @"BigBuckBunny.mp4"), AssetCreationOptions.None);
-
                 
                 Console.WriteLine("Generate thumbnails and get URLs.\n");
 
                 IAsset thumbnailAsset = GenerateThumbnail(inputAsset, AssetCreationOptions.None);
                 PublishAssetGetURLs(thumbnailAsset, false, ".bmp");
-
 
                 Console.WriteLine("Encode to audio and get an on demand URL.\n");
 
@@ -71,7 +60,6 @@ namespace OnDemandEncodingWithMES
 
                 IAsset encodedAsset =
                     EncodeToAdaptiveBitrateMP4s(inputAsset, AssetCreationOptions.None);
-
 
                 // If your want to delivery a storage encrypted asset, 
                 // you must configure the asset’s delivery policy.
@@ -120,7 +108,7 @@ namespace OnDemandEncodingWithMES
 
             IJob job = _context.Jobs.CreateWithSingleTask(
                 "Media Encoder Standard",
-                "H264 Multiple Bitrate 720p",
+                "Adaptive Streaming",
                 asset,
                 "Adaptive Bitrate MP4",
                 options);
