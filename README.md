@@ -1,7 +1,11 @@
 ---
-services: media-services
-platforms: dotnet
-author: Juliako
+page_type: sample
+languages:
+- csharp
+products:
+- azure
+description: "The sample shows how to encode media on demand with Media Encoder Standard."
+urlFragment: media-services-dotnet-on-demand-encoding-with-media-encoder-standard
 ---
 
 # Encode and Deliver Content on Demand with Azure Media Services using .NET SDK
