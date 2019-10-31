@@ -8,7 +8,7 @@ description: "The sample shows how to encode media on demand with Media Encoder 
 urlFragment: media-services-dotnet-on-demand-encoding-with-media-encoder-standard
 ---
 
-# Encode and Deliver Content on Demand with Azure Media Services using .NET SDK
+# Encode and Deliver Content on Demand with Azure Media Services v2 using .NET SDK
 
 The sample shows how to encode media on demand with Media Encoder Standard. The following media processing operations are shown:
  
