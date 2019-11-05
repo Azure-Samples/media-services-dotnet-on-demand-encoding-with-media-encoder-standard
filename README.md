@@ -10,7 +10,13 @@ urlFragment: media-services-dotnet-on-demand-encoding-with-media-encoder-standar
 
 # Encode and Deliver Content on Demand with Azure Media Services v2 using .NET SDK
 
-The sample shows how to encode media on demand with Media Encoder Standard. The following media processing operations are shown:
+## NOTE
+ 
+You can find the latest and most extensive Media Services v3 .NET samples in the [Azure Media Services v3](https://github.com/Azure-Samples/media-services-v3-dotnet) repository.
+
+## Overview
+
+The sample in this repo shows how to encode media on demand with Media Encoder Standard. The following media processing operations are shown:
  
 - How to generate a thumbnail.
 - How to encode to audio only.
